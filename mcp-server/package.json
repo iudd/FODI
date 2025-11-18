@@ -1,0 +1,27 @@
+{
+  "name": "fodi-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for FODI OneDrive indexing with SSE support",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build": "tsc",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/mcp": "^0.1.0",
+    "@hono/node-server": "^1.13.0",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "hono": "^4.6.0",
+    "tsyringe": "^4.8.0",
+    "reflect-metadata": "^0.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.2",
+    "wrangler": "^4.33.0",
+    "vitest": "^2.0.0"
+  }
+}
