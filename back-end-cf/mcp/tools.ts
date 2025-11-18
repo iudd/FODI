@@ -6,8 +6,8 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
-import { listFiles, searchFiles, getFileInfo, getDownloadUrl } from '../services/fileMethods';
-import { parsePath } from '../services/pathUtils';
+import { fetchFiles, downloadFile } from '../services/fileMethods';
+import { runtimeEnv } from '../types/env';
 
 export function handleMcpTools(server: McpServer): void {
   // List tools
@@ -126,17 +126,17 @@ async function handleListFiles(args: { path?: string }) {
   const path = args.path || '/';
   
   try {
-    const response = await listFiles(path);
-    const data = await response.json();
+    const result = await fetchFiles(path);
     
     return {
       content: [
         {
           type: 'text',
           text: JSON.stringify({
-            path,
-            files: data.value || [],
-            total: data.value?.length || 0,
+            path: result.parent,
+            files: result.files,
+            total: result.files.length,
+            hasMore: !!result.skipToken,
           }, null, 2),
         },
       ],
@@ -147,9 +147,13 @@ async function handleListFiles(args: { path?: string }) {
 }
 
 async function handleSearchFiles(args: { query: string }) {
+  // FODI doesn't have a built-in search function, so we'll implement a simple file listing with filter
   try {
-    const response = await searchFiles(args.query);
-    const data = await response.json();
+    // For now, we'll list root files and filter by name
+    const result = await fetchFiles('/');
+    const filteredFiles = result.files.filter(file => 
+      file.name.toLowerCase().includes(args.query.toLowerCase())
+    );
     
     return {
       content: [
@@ -157,8 +161,9 @@ async function handleSearchFiles(args: { query: string }) {
           type: 'text',
           text: JSON.stringify({
             query: args.query,
-            results: data.value || [],
-            total: data.value?.length || 0,
+            results: filteredFiles,
+            total: filteredFiles.length,
+            note: 'Search is limited to filename matching in root directory',
           }, null, 2),
         },
       ],
@@ -170,14 +175,25 @@ async function handleSearchFiles(args: { query: string }) {
 
 async function handleGetFileInfo(args: { path: string }) {
   try {
-    const response = await getFileInfo(args.path);
-    const data = await response.json();
+    const result = await fetchFiles(args.path);
+    
+    if (result.files.length === 0) {
+      throw new Error('File not found');
+    }
+    
+    const file = result.files[0];
     
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(data, null, 2),
+          text: JSON.stringify({
+            name: file.name,
+            size: file.size,
+            lastModifiedDateTime: file.lastModifiedDateTime,
+            downloadUrl: file.url,
+            path: args.path,
+          }, null, 2),
         },
       ],
     };
@@ -188,8 +204,13 @@ async function handleGetFileInfo(args: { path: string }) {
 
 async function handleGetDownloadUrl(args: { path: string }) {
   try {
-    const response = await getDownloadUrl(args.path);
-    const data = await response.json();
+    const result = await fetchFiles(args.path);
+    
+    if (result.files.length === 0) {
+      throw new Error('File not found');
+    }
+    
+    const file = result.files[0];
     
     return {
       content: [
@@ -197,7 +218,9 @@ async function handleGetDownloadUrl(args: { path: string }) {
           type: 'text',
           text: JSON.stringify({
             path: args.path,
-            download_url: data.downloadUrl || data['@microsoft.graph.downloadUrl'],
+            download_url: file.url,
+            name: file.name,
+            size: file.size,
           }, null, 2),
         },
       ],
@@ -208,13 +231,12 @@ async function handleGetDownloadUrl(args: { path: string }) {
 }
 
 async function handleGetAuthUrl(args: {}) {
-  // This would need to be implemented based on FODI's OAuth flow
-  const oauthUrl = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize?' + 
+  const oauthUrl = runtimeEnv.OAUTH.oauthUrl + 'authorize?' + 
     new URLSearchParams({
-      client_id: '78d4dc35-7e46-42c6-9023-2d39314433a5',
+      client_id: runtimeEnv.OAUTH.clientId,
       response_type: 'code',
-      redirect_uri: 'http://localhost/onedrive-login',
-      scope: 'offline_access User.Read Files.ReadWrite.All',
+      redirect_uri: runtimeEnv.OAUTH.redirectUri,
+      scope: runtimeEnv.OAUTH.scope,
       response_mode: 'query',
     }).toString();
 
@@ -224,8 +246,9 @@ async function handleGetAuthUrl(args: {}) {
         type: 'text',
         text: JSON.stringify({
           auth_url: oauthUrl,
-          client_id: '78d4dc35-7e46-42c6-9023-2d39314433a5',
-          redirect_uri: 'http://localhost/onedrive-login',
+          client_id: runtimeEnv.OAUTH.clientId,
+          redirect_uri: runtimeEnv.OAUTH.redirectUri,
+          scope: runtimeEnv.OAUTH.scope,
         }, null, 2),
       },
     ],
@@ -248,7 +271,14 @@ async function handleGetFodiInfo(args: {}) {
             'Server-Sent Events (SSE)',
             'Caching',
             'Directory protection',
+            'File upload support',
           ],
+          configuration: {
+            exposed_path: runtimeEnv.PROTECTED.EXPOSE_PATH || '/',
+            proxy_keyword: runtimeEnv.PROTECTED.PROXY_KEYWORD || null,
+            protected_layers: runtimeEnv.PROTECTED.PROTECTED_LAYERS,
+            cache_ttl: runtimeEnv.PROTECTED.CACHE_TTLMAP,
+          },
           endpoints: {
             webdav: '/',
             mcp: '/mcp',
