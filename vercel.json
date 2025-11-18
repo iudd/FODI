@@ -1,0 +1,32 @@
+{
+  "version": 2,
+  "name": "fodi",
+  "builds": [
+    {
+      "src": "front-end/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "back-end-cf/**",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/back-end-cf/index.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/front-end/$1"
+    }
+  ],
+  "functions": {
+    "back-end-cf/index.js": {
+      "maxDuration": 10
+    }
+  },
+  "env": {
+    "NODE_ENV": "production"
+  }
+}
