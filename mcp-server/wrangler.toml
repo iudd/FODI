@@ -1,0 +1,27 @@
+name = "fodi-mcp-server"
+main = "src/index.ts"
+compatibility_date = "2025-04-10"
+
+[build]
+command = "npm run build"
+
+[vars]
+# FODI OneDrive API Configuration
+ONEDRIVE_CLIENT_ID = "78d4dc35-7e46-42c6-9023-2d39314433a5"
+ONEDRIVE_CLIENT_SECRET = "ZudGl-p.m=LMmr3VrKgAyOf-WevB3p50"
+ONEDRIVE_REDIRECT_URI = "http://localhost/onedrive-login"
+ONEDRIVE_API_HOST = "https://graph.microsoft.com"
+
+# MCP Server Configuration
+MCP_SERVER_NAME = "FODI MCP Server"
+MCP_SERVER_VERSION = "1.0.0"
+MCP_TRANSPORT_TYPE = "http"
+MCP_HTTP_PORT = 8787
+MCP_HTTP_HOST = "0.0.0.0"
+MCP_HTTP_ENDPOINT_PATH = "/mcp"
+
+# Enable SSE for real-time updates
+ENABLE_SSE = "true"
+
+[vars.dev]
+MCP_LOG_LEVEL = "debug"
