@@ -12,11 +12,47 @@ Fast OneDrive Index / FODI，无需服务器的 OneDrive 快速列表程序
 - 特定文件夹加密
 - 无需服务器免费部署
 - 基本文本、图片、音视频和 Office 三件套预览
+- **🆕 MCP (Model Context Protocol) 支持**
+- **🆕 Server-Sent Events (SSE) 实时更新**
 
 ## 缺点
 
 - 功能简单，界面简陋
 - 不支持巨硬家的 IE 和 UWP 版 EDGE 浏览器
+
+## 🚀 MCP 集成
+
+FODI 现在支持 Model Context Protocol (MCP)，允许 AI 助手通过标准协议与 OneDrive 文件系统交互。
+
+### MCP 工具
+
+- `list_files`: 列出目录文件
+- `search_files`: 搜索文件
+- `get_file_info`: 获取文件详情
+- `get_download_url`: 获取下载链接
+- `get_auth_url`: 获取 OAuth 认证链接
+- `get_fodi_info`: 获取 FODI 配置信息
+
+### API 端点
+
+- **MCP**: `POST /mcp` - MCP JSON-RPC 处理
+- **SSE**: `GET /sse` - 实时事件流
+
+### 快速测试
+
+```bash
+# 安装依赖
+cd back-end-cf
+npm install
+
+# 启动开发服务器
+npm run dev
+
+# 测试 MCP 客户端
+node examples/mcp-client.js http://localhost:8787
+```
+
+详细文档请参考: [MCP 集成文档](docs/mcp-integration.md)
 
 ## 部署
 
@@ -87,6 +123,13 @@ npx wrangler secret put PASSWORD
 - 链接携带参数名 `forceRefresh`，值为 sha256 后的 `PASSWORD` 可强制刷新缓存
 
 ## 更新
+
+### 2025.11.18
+
+- 🆕 添加 MCP (Model Context Protocol) 支持
+- 🆕 添加 Server-Sent Events (SSE) 实时更新
+- 🔧 集成 AI 助手交互功能
+- 📚 完善文档和示例代码
 
 ### 2025.02.12
 
