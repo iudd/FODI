@@ -2,6 +2,7 @@ import { sha256 } from '../services/utils';
 import { handleWebdav } from './dav-handler';
 import { handleGetRequest } from './get-handler';
 import { handlePostRequest } from './post-handler';
+import { handleMcpRequest, handleSseRequest } from './mcp-handler';
 
 export async function cacheRequest(
   request: Request,
@@ -10,6 +11,16 @@ export async function cacheRequest(
 ): Promise<Response> {
   const CACHE_TTLMAP = env.PROTECTED.CACHE_TTLMAP;
   const requestMethod = request.method as keyof typeof CACHE_TTLMAP;
+  const requestUrl = new URL(request.url);
+
+  // Handle MCP and SSE requests without caching
+  if (requestUrl.pathname === '/mcp') {
+    return handleMcpRequest(request, env);
+  }
+  if (requestUrl.pathname === '/sse') {
+    return handleSseRequest(request, env);
+  }
+
   if (CACHE_TTLMAP[requestMethod]) {
     const keyGenerators: {
       [key: string]: () => string | Promise<string>;
